@@ -1,20 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, useTemplateRef } from 'vue'
+import { ref, useTemplateRef } from 'vue'
 import { usePanZoom } from './usePanZoom'
-
-const rnd = (x: number) => Math.random() * x
-const range = (n: number) => [...Array(n).keys()]
-
-const data: [number, number][] = [[-1000, -950]]
-for (let i = 0; i < 100000; i++) {
-  const end = data[data.length - 1]![1]
-  data.push([end + rnd(100), end + rnd(100) + rnd(200)])
-}
-// const data: [number, number][] = [
-//   [-40, 0],
-//   [10, 20],
-//   [30, 40],
-// ]
 
 type ReturnType<F> = F extends (...args: infer A) => infer R ? R : never
 
@@ -37,10 +23,11 @@ const {
   isEventVisible,
 } = usePanZoom(elRef)
 
-const visibleData = computed(() => data.filter(([from, to]) => isEventVisible(from, to)))
+defineExpose({ isEventVisible, toScreen })
 
-const a = defineModel<string>('name', { default: 's' })
-console.log(a.value)
+const emit = defineEmits<{
+  (e: 'isDragging', value: boolean): void
+}>()
 
 const handleWheel = (e: WheelEvent) => {
   if (e.shiftKey) {
@@ -53,6 +40,7 @@ const handleWheel = (e: WheelEvent) => {
 const handlePointerDown = (e: PointerEvent) => {
   lastDragX.value = e.clientX
   elRef.value?.setPointerCapture(e.pointerId)
+  emit('isDragging', true)
 }
 
 const handlePointerMove = (e: PointerEvent) => {
@@ -70,6 +58,7 @@ const handlePointerUp = (e: PointerEvent) => {
   elRef.value?.releasePointerCapture(e.pointerId)
   from.value -= inertiaDistance.value
   to.value -= inertiaDistance.value
+  emit('isDragging', false)
 }
 </script>
 
@@ -87,25 +76,7 @@ const handlePointerUp = (e: PointerEvent) => {
   >
     {{ zoomLevel }}
     {{ from.toFixed(1) }} {{ to.toFixed(1) }}
-    <div
-      v-for="[from, to] in visibleData"
-      :key="from"
-      :class="$style.event"
-      :style="{
-        left: `${toScreen(from)}px`,
-        width: `${toScreen(to) - toScreen(from)}px`,
-        transition: lastDragX !== null ? 'none' : 'all ease 0.3s',
-      }"
-    >
-      <div
-        :class="$style.eventTitle"
-        :style="{
-          left: `${Math.max(0, -toScreen(from))}px`,
-        }"
-      >
-        Name mamamma oiuoiu
-      </div>
-    </div>
+    <slot />
   </div>
 </template>
 
@@ -117,22 +88,5 @@ const handlePointerUp = (e: PointerEvent) => {
   position: relative;
   overflow: hidden;
   user-select: none;
-}
-
-.event {
-  position: absolute;
-  height: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: red;
-  border-radius: 6px;
-}
-
-.eventTitle {
-  position: absolute;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  right: 0;
 }
 </style>
