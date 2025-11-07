@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
-
-const maxZoom = 20
-const minZoom = -10
-const baseWidth = 100
-const zoomFactor = 0.3
-const inertiaFactor = 0.03
-const inertiaMax = 100
+import { usePanZoom } from './usePanZoom'
 
 const rnd = (x: number) => Math.random() * x
 const range = (n: number) => [...Array(n).keys()]
@@ -22,81 +16,57 @@ for (let i = 0; i < 100000; i++) {
 //   [30, 40],
 // ]
 
-const zoom = ref(10)
-const zoomCoef = computed(() => Math.exp(zoom.value * zoomFactor))
+type ReturnType<F> = F extends (...args: infer A) => infer R ? R : never
 
-const from = ref(-50)
-const to = ref(from.value + baseWidth * zoomCoef.value)
+// const props = defineProps<{ handler: ReturnType<typeof usePanZoom> }>()
 
-const width = computed(() => to.value - from.value)
-
-const inertiaDistance = computed(
-  () => Math.min(inertia.value ?? 0, inertiaMax) * inertiaFactor * zoomCoef.value,
-)
-
-const dragStart = ref<number | null>(null)
-const dragFrom = ref<number | null>(null)
 const lastDragX = ref<number | null>(null)
-const inertia = ref<number | null>(null)
 
-const elRef = useTemplateRef<HTMLDivElement>('ref')
+const elRef = useTemplateRef<HTMLElement>('ref')
 
-const visibleData = computed(() =>
-  data.filter(
-    (event) =>
-      event[1] >= from.value - (width.value * Math.exp(zoomFactor)) / 2 &&
-      event[0] <= to.value + (width.value * Math.exp(zoomFactor)) / 2,
-  ),
-)
+const {
+  from,
+  to,
+  zoomLevel,
+  inertiaDistance,
+  zoom,
+  pan,
+  panByStep,
+  toScreen,
+  fromScreen,
+  isEventVisible,
+} = usePanZoom(elRef)
+
+const visibleData = computed(() => data.filter(([from, to]) => isEventVisible(from, to)))
 
 const a = defineModel<string>('name', { default: 's' })
 console.log(a.value)
 
-const toScreen = (x: number) => {
-  return ((elRef.value?.clientWidth ?? 0) * (x - from.value)) / width.value
-}
-
-const fromScreen = (x: number) => {
-  return from.value + ((to.value - from.value) * x) / (elRef.value?.clientWidth ?? 0)
-}
-
-Object.assign(window, { toScreen, fromScreen })
-
 const handleWheel = (e: WheelEvent) => {
-  zoom.value = Math.min(maxZoom, Math.max(minZoom, zoom.value + Math.sign(e.deltaY)))
-
-  const zoomCenter = fromScreen(e.clientX)
-  const k = Math.exp(Math.sign(e.deltaY) * zoomFactor)
-
-  from.value = zoomCenter + (from.value - zoomCenter) * k
-  to.value = zoomCenter + (to.value - zoomCenter) * k
-  a.value = zoom.value.toString()
+  if (e.shiftKey) {
+    panByStep(Math.sign(e.deltaY))
+  } else {
+    zoom(Math.sign(e.deltaY), e.clientX)
+  }
 }
 
 const handlePointerDown = (e: PointerEvent) => {
-  dragStart.value = e.clientX
-  dragFrom.value = from.value
-  elRef.value?.setPointerCapture(e.pointerId)
   lastDragX.value = e.clientX
+  elRef.value?.setPointerCapture(e.pointerId)
 }
 
 const handlePointerMove = (e: PointerEvent) => {
-  if (dragStart.value !== null && dragFrom.value !== null) {
-    from.value = fromScreen(toScreen(dragFrom.value) - (e.clientX - dragStart.value))
-    to.value = from.value + baseWidth * zoomCoef.value
-    if (lastDragX.value !== null) {
-      inertia.value = e.clientX - lastDragX.value
-    }
-    lastDragX.value = e.clientX
-  }
+  if (lastDragX.value === null) return
+
+  pan(e.clientX - lastDragX.value)
+  lastDragX.value = e.clientX
 }
 
 const handlePointerUp = (e: PointerEvent) => {
-  if (dragStart.value === e.clientX) {
-    // inertia.value = 0
-  }
-  dragStart.value = null
-  dragFrom.value = null
+  // if (lastDragX.value === e.clientX) {
+  //   // inertia.value = 0
+  // }
+  lastDragX.value = null
   elRef.value?.releasePointerCapture(e.pointerId)
   from.value -= inertiaDistance.value
   to.value -= inertiaDistance.value
@@ -111,12 +81,11 @@ const handlePointerUp = (e: PointerEvent) => {
     @pointermove="handlePointerMove"
     @pointerup="handlePointerUp"
     :style="{
-      cursor: dragStart ? 'grabbing' : 'grab',
+      cursor: lastDragX !== null ? 'grabbing' : 'grab',
     }"
     ref="ref"
   >
-    {{ zoom }}
-    {{ width.toFixed(0) }}
+    {{ zoomLevel }}
     {{ from.toFixed(1) }} {{ to.toFixed(1) }}
     <div
       v-for="[from, to] in visibleData"
@@ -125,7 +94,7 @@ const handlePointerUp = (e: PointerEvent) => {
       :style="{
         left: `${toScreen(from)}px`,
         width: `${toScreen(to) - toScreen(from)}px`,
-        transition: dragStart !== null ? 'none' : 'all ease 0.3s',
+        transition: lastDragX !== null ? 'none' : 'all ease 0.3s',
       }"
     >
       <div
