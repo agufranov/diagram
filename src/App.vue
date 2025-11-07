@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { ref, watchEffect } from 'vue'
 import Diagram from './Diagram.vue'
+
+const name = ref()
+watchEffect(() => console.log('name updated', name.value))
 </script>
 
 <template>
@@ -8,7 +12,7 @@ import Diagram from './Diagram.vue'
     Visit <a href="https://vuejs.org/" target="_blank" rel="noopener">vuejs.org</a> to read the
     documentation
   </p>
-  <Diagram />
+  <Diagram v-model:name="name" />
 </template>
 
 <style scoped></style>

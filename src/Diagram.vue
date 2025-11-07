@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, useTemplateRef } from 'vue'
 
-const maxZoom = 40
-const minZoom = 1
+const maxZoom = 20
+const minZoom = -10
 const baseWidth = 100
-const baseZoom = 10
 const zoomFactor = 0.3
 const inertiaFactor = 0.03
 const inertiaMax = 100
@@ -23,11 +22,14 @@ for (let i = 0; i < 100000; i++) {
 //   [30, 40],
 // ]
 
-const zoom = ref(baseZoom)
+const zoom = ref(10)
+const zoomCoef = computed(() => Math.exp(zoom.value * zoomFactor))
+
 const from = ref(-50)
-const to = ref(from.value + baseWidth)
+const to = ref(from.value + baseWidth * zoomCoef.value)
+
 const width = computed(() => to.value - from.value)
-const zoomCoef = computed(() => Math.exp((zoom.value - baseZoom) * zoomFactor))
+
 const inertiaDistance = computed(
   () => Math.min(inertia.value ?? 0, inertiaMax) * inertiaFactor * zoomCoef.value,
 )
@@ -42,12 +44,13 @@ const elRef = useTemplateRef<HTMLDivElement>('ref')
 const visibleData = computed(() =>
   data.filter(
     (event) =>
-      event[1] >=
-        from.value - (width.value * Math.exp(zoomFactor)) / 2 - Math.abs(inertiaDistance.value) &&
-      event[0] <=
-        to.value + (width.value * Math.exp(zoomFactor)) / 2 + Math.abs(inertiaDistance.value),
+      event[1] >= from.value - (width.value * Math.exp(zoomFactor)) / 2 &&
+      event[0] <= to.value + (width.value * Math.exp(zoomFactor)) / 2,
   ),
 )
+
+const a = defineModel<string>('name', { default: 's' })
+console.log(a.value)
 
 const toScreen = (x: number) => {
   return ((elRef.value?.clientWidth ?? 0) * (x - from.value)) / width.value
@@ -67,6 +70,7 @@ const handleWheel = (e: WheelEvent) => {
 
   from.value = zoomCenter + (from.value - zoomCenter) * k
   to.value = zoomCenter + (to.value - zoomCenter) * k
+  a.value = zoom.value.toString()
 }
 
 const handlePointerDown = (e: PointerEvent) => {
@@ -123,7 +127,16 @@ const handlePointerUp = (e: PointerEvent) => {
         width: `${toScreen(to) - toScreen(from)}px`,
         transition: dragStart !== null ? 'none' : 'all ease 0.3s',
       }"
-    ></div>
+    >
+      <div
+        :class="$style.eventTitle"
+        :style="{
+          left: `${Math.max(0, -toScreen(from))}px`,
+        }"
+      >
+        Name mamamma oiuoiu
+      </div>
+    </div>
   </div>
 </template>
 
@@ -144,5 +157,13 @@ const handlePointerUp = (e: PointerEvent) => {
   transform: translateY(-50%);
   background: red;
   border-radius: 6px;
+}
+
+.eventTitle {
+  position: absolute;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  right: 0;
 }
 </style>
