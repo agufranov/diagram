@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, useTemplateRef } from 'vue'
+import { ref, useTemplateRef, watch } from 'vue'
 import { usePanZoom } from './usePanZoom'
 
 type ReturnType<F> = F extends (...args: infer A) => infer R ? R : never
@@ -13,6 +13,8 @@ const elRef = useTemplateRef<HTMLElement>('ref')
 const {
   from,
   to,
+  showFrom,
+  showTo,
   zoomLevel,
   inertiaDistance,
   zoom,
@@ -20,14 +22,20 @@ const {
   panByStep,
   toScreen,
   fromScreen,
-  isEventVisible,
 } = usePanZoom(elRef)
 
-defineExpose({ isEventVisible, toScreen })
+defineExpose({ toScreen })
 
 const emit = defineEmits<{
   (e: 'isDragging', value: boolean): void
+  (e: 'showBoundsChange', value: { showFrom: number; showTo: number }): void
 }>()
+
+watch(
+  [showFrom, showTo],
+  () => emit('showBoundsChange', { showFrom: showFrom.value, showTo: showTo.value }),
+  { immediate: true },
+)
 
 const handleWheel = (e: WheelEvent) => {
   if (e.shiftKey) {
