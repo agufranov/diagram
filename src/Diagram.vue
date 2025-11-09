@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import { ref, useTemplateRef, watch } from 'vue'
-import { usePanZoom } from './usePanZoom'
 
-type ReturnType<F> = F extends (...args: infer A) => infer R ? R : never
+const props = defineProps<{
+  pan: (screenDelta: number) => void
+  panByStep: (by: number) => void
+  zoom: (by: number, screenCenter: number) => void
+  applyInertia: () => void
+}>()
 
-// const props = defineProps<{ handler: ReturnType<typeof usePanZoom> }>()
+const { pan, panByStep, zoom, applyInertia } = props
 
 const width = defineModel<number>('width', { default: 0 })
 
@@ -12,14 +16,8 @@ const lastDragX = ref<number | null>(null)
 
 const elRef = useTemplateRef<HTMLElement>('elRef')
 
-const { showFrom, showTo, zoom, pan, panByStep, toScreen, fromScreen, applyInertia } =
-  usePanZoom(width)
-
-defineExpose({ toScreen })
-
 const emit = defineEmits<{
   (e: 'isDragging', value: boolean): void
-  (e: 'showBoundsChange', value: { showFrom: number; showTo: number }): void
 }>()
 
 watch(elRef, () => {
@@ -29,12 +27,6 @@ watch(elRef, () => {
     elRef.value,
   )
 })
-
-watch(
-  [showFrom, showTo],
-  () => emit('showBoundsChange', { showFrom: showFrom.value, showTo: showTo.value }),
-  { immediate: true },
-)
 
 const handleWheel = (e: WheelEvent) => {
   const direction = Math.sign(e.deltaY)

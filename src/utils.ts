@@ -5,6 +5,7 @@ export function findFirst(arr: [number, number][], x: number) {
   let right = arr.length - 1
   let result = null
   let mid = 0
+  let steps = 0
 
   while (left <= right) {
     mid = Math.floor((left + right) / 2)
@@ -20,7 +21,10 @@ export function findFirst(arr: [number, number][], x: number) {
     } else {
       left = mid + 1
     }
+    steps++
   }
+
+  console.log('findFirst steps:', steps)
 
   return mid
 }
@@ -32,6 +36,7 @@ export function findLast(arr: [number, number][], x: number) {
   let right = arr.length - 1
   let result = null
   let mid = 0
+  let steps = 0
 
   while (left <= right) {
     mid = Math.floor((left + right) / 2)
@@ -47,7 +52,10 @@ export function findLast(arr: [number, number][], x: number) {
     } else {
       right = mid - 1
     }
+    steps++
   }
+
+  console.log('findLast steps:', steps)
 
   return mid
 }

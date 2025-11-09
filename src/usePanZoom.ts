@@ -1,12 +1,12 @@
-import { computed, ref, type Ref } from 'vue'
+import { computed, ref } from 'vue'
 
-export const usePanZoom = (elementWidth: Ref<number>) => {
+export const usePanZoom = () => {
   const maxZoom = 20
   const minZoom = -5
   const baseWidth = 100
   const zoomFactor = 0.3
   const inertiaFactor = 1.6
-  const inertiaMax = 10000
+  const inertiaMax = 1000
   const mousePanFactor = 0.1
   const transformDuration = 300
 
@@ -17,6 +17,7 @@ export const usePanZoom = (elementWidth: Ref<number>) => {
   const to = ref(from.value + baseWidth * zoomCoef.value)
 
   const width = computed(() => to.value - from.value)
+  const screenWidth = ref(0)
 
   const inertia = ref<number>(0)
   const inertiaDistance = computed(() => {
@@ -35,16 +36,27 @@ export const usePanZoom = (elementWidth: Ref<number>) => {
   const showFrom = computed(() => from.value - displayGap.value)
   const showTo = computed(() => to.value + displayGap.value)
 
+  // const showFrom = ref(0)
+  // const showTo = ref(0)
+  // watch(
+  //   [from, to, displayGap],
+  //   debounce(() => {
+  //     console.log('watcher')
+  //     showFrom.value = from.value - displayGap.value
+  //     showTo.value = to.value + displayGap.value
+  //   }, 5),
+  // )
+
   const toScreen = (x: number) => {
-    return (elementWidth.value * (x - from.value)) / width.value
+    return (screenWidth.value * (x - from.value)) / width.value
   }
 
   const fromScreen = (x: number) => {
-    return from.value + ((to.value - from.value) * x) / elementWidth.value
+    return from.value + ((to.value - from.value) * x) / screenWidth.value
   }
 
   const intervalFromScreen = (d: number) => {
-    return ((to.value - from.value) * d) / elementWidth.value
+    return ((to.value - from.value) * d) / screenWidth.value
   }
 
   const zoom = (by: number, screenCenter: number) => {
@@ -68,7 +80,7 @@ export const usePanZoom = (elementWidth: Ref<number>) => {
   }
 
   const panByStep = (by: number) => {
-    pan(-mousePanFactor * elementWidth.value * by)
+    pan(-mousePanFactor * screenWidth.value * by)
   }
 
   const applyInertia = () => {
@@ -91,5 +103,6 @@ export const usePanZoom = (elementWidth: Ref<number>) => {
     toScreen,
     fromScreen,
     applyInertia,
+    screenWidth,
   }
 }
