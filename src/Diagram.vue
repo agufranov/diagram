@@ -10,19 +10,8 @@ const lastDragX = ref<number | null>(null)
 
 const elRef = useTemplateRef<HTMLElement>('ref')
 
-const {
-  from,
-  to,
-  showFrom,
-  showTo,
-  zoomLevel,
-  inertiaDistance,
-  zoom,
-  pan,
-  panByStep,
-  toScreen,
-  fromScreen,
-} = usePanZoom(elRef)
+const { showFrom, showTo, zoom, pan, panByStep, toScreen, fromScreen, applyInertia } =
+  usePanZoom(elRef)
 
 defineExpose({ toScreen })
 
@@ -38,10 +27,12 @@ watch(
 )
 
 const handleWheel = (e: WheelEvent) => {
+  const direction = Math.sign(e.deltaY)
+
   if (e.shiftKey) {
-    panByStep(Math.sign(e.deltaY))
+    panByStep(direction)
   } else {
-    zoom(Math.sign(e.deltaY), e.clientX)
+    zoom(direction, e.clientX)
   }
 }
 
@@ -59,13 +50,9 @@ const handlePointerMove = (e: PointerEvent) => {
 }
 
 const handlePointerUp = (e: PointerEvent) => {
-  // if (lastDragX.value === e.clientX) {
-  //   // inertia.value = 0
-  // }
   lastDragX.value = null
   elRef.value?.releasePointerCapture(e.pointerId)
-  from.value -= inertiaDistance.value
-  to.value -= inertiaDistance.value
+  applyInertia()
   emit('isDragging', false)
 }
 </script>
@@ -82,8 +69,6 @@ const handlePointerUp = (e: PointerEvent) => {
     }"
     ref="ref"
   >
-    {{ zoomLevel }}
-    {{ from.toFixed(1) }} {{ to.toFixed(1) }}
     <slot />
   </div>
 </template>
