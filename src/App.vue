@@ -7,11 +7,21 @@ import { findFirst, findLast } from './utils'
 
 const isDragging = ref(false)
 
-const { showFrom, showTo, pan, panByStep, zoom, applyInertia, screenWidth, toScreen } = usePanZoom()
+const {
+  renderStart,
+  renderEnd,
+  pan,
+  panByStep,
+  zoom,
+  toScreen,
+  applyInertia,
+  screenWidth,
+  transformDuration,
+} = usePanZoom()
 
 const visibleData = computed(() => {
-  const firstIndex = findFirst(data, showFrom.value)
-  const lastIndex = findLast(data, showTo.value)
+  const firstIndex = findFirst(data, renderStart.value)
+  const lastIndex = findLast(data, renderEnd.value)
 
   if (firstIndex === null || lastIndex === null) return []
 
@@ -35,13 +45,13 @@ const visibleData = computed(() => {
       :style="{
         transform: `translate(${toScreen(from)}px, -50%)`,
         width: `${toScreen(to) - toScreen(from)}px`,
-        transition: isDragging ? 'none' : 'all ease 0.3s',
+        transition: isDragging ? 'none' : `all ease ${transformDuration}ms`,
       }"
     >
       <div
         :class="$style.eventTitle"
         :style="{
-          left: `${Math.max(0, -(toScreen?.(from) ?? 0))}px`,
+          left: `${Math.max(0, -toScreen(from))}px`,
         }"
       >
         Name mamamma oiuoiu

@@ -13,10 +13,10 @@ export const usePanZoom = () => {
   const zoomLevel = ref(10)
   const zoomCoef = computed(() => Math.exp(zoomLevel.value * zoomFactor))
 
-  const from = ref(-50)
-  const to = ref(from.value + baseWidth * zoomCoef.value)
+  const start = ref(-50)
+  const end = ref(start.value + baseWidth * zoomCoef.value)
 
-  const width = computed(() => to.value - from.value)
+  const width = computed(() => end.value - start.value)
   const screenWidth = ref(0)
 
   const inertia = ref<number>(0)
@@ -33,30 +33,30 @@ export const usePanZoom = () => {
     Math.max((width.value * Math.exp(zoomFactor)) / 2, Math.abs(inertiaDistance.value)),
   )
 
-  const showFrom = computed(() => from.value - displayGap.value)
-  const showTo = computed(() => to.value + displayGap.value)
+  const renderStart = computed(() => start.value - displayGap.value)
+  const renderEnd = computed(() => end.value + displayGap.value)
 
-  // const showFrom = ref(0)
-  // const showTo = ref(0)
+  // const renderStart = ref(0)
+  // const renderEnd = ref(0)
   // watch(
   //   [from, to, displayGap],
   //   debounce(() => {
   //     console.log('watcher')
-  //     showFrom.value = from.value - displayGap.value
-  //     showTo.value = to.value + displayGap.value
+  //     renderStart.value = from.value - displayGap.value
+  //     renderEnd.value = to.value + displayGap.value
   //   }, 5),
   // )
 
   const toScreen = (x: number) => {
-    return (screenWidth.value * (x - from.value)) / width.value
+    return (screenWidth.value * (x - start.value)) / width.value
   }
 
   const fromScreen = (x: number) => {
-    return from.value + ((to.value - from.value) * x) / screenWidth.value
+    return start.value + ((end.value - start.value) * x) / screenWidth.value
   }
 
   const intervalFromScreen = (d: number) => {
-    return ((to.value - from.value) * d) / screenWidth.value
+    return ((end.value - start.value) * d) / screenWidth.value
   }
 
   const zoom = (by: number, screenCenter: number) => {
@@ -68,14 +68,14 @@ export const usePanZoom = () => {
     const zoomCenter = fromScreen(screenCenter)
     const k = Math.exp(by * zoomFactor)
 
-    from.value = zoomCenter + (from.value - zoomCenter) * k
-    to.value = zoomCenter + (to.value - zoomCenter) * k
+    start.value = zoomCenter + (start.value - zoomCenter) * k
+    end.value = zoomCenter + (end.value - zoomCenter) * k
   }
 
   const pan = (screenDelta: number) => {
     inertia.value = screenDelta
-    from.value -= intervalFromScreen(screenDelta)
-    to.value = from.value + baseWidth * zoomCoef.value
+    start.value -= intervalFromScreen(screenDelta)
+    end.value = start.value + baseWidth * zoomCoef.value
     setTimeout(() => (inertia.value = 0), transformDuration)
   }
 
@@ -88,21 +88,17 @@ export const usePanZoom = () => {
   }
 
   const isEventVisible = (eventFrom: number, eventTo: number) =>
-    eventTo >= showFrom.value && eventFrom <= showTo.value
+    eventTo >= renderStart.value && eventFrom <= renderEnd.value
 
   return {
-    from,
-    to,
-    showFrom,
-    showTo,
-    zoomLevel,
-    inertiaDistance,
-    zoom,
+    renderStart,
+    renderEnd,
     pan,
     panByStep,
+    zoom,
     toScreen,
-    fromScreen,
     applyInertia,
     screenWidth,
+    transformDuration,
   }
 }

@@ -12,7 +12,7 @@ export function findFirst(arr: [number, number][], x: number) {
 
     if (arr[mid] !== undefined && arr[mid]![1] >= x) {
       // Проверяем предыдущий элемент (если существует)
-      if (mid === 0 || (arr[mid - 1] !== undefined && arr[mid - 1]![1] < x)) {
+      if (mid === 0) {
         result = arr[mid]
         break
       } else {
@@ -43,7 +43,7 @@ export function findLast(arr: [number, number][], x: number) {
 
     if (arr[mid] !== undefined && arr[mid]![0] <= x) {
       // Проверяем следующий элемент (если существует)
-      if (mid === arr.length - 1 || (arr[mid + 1] !== undefined && arr[mid + 1]![0] > x)) {
+      if (mid === arr.length - 1) {
         result = arr[mid]
         break
       } else {
