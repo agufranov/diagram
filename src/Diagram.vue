@@ -10,7 +10,7 @@ const width = defineModel<number>('width', { default: 0 })
 
 const lastDragX = ref<number | null>(null)
 
-const elRef = useTemplateRef<HTMLElement>('ref')
+const elRef = useTemplateRef<HTMLElement>('elRef')
 
 const { showFrom, showTo, zoom, pan, panByStep, toScreen, fromScreen, applyInertia } =
   usePanZoom(width)
@@ -77,7 +77,7 @@ const handlePointerUp = (e: PointerEvent) => {
     :style="{
       cursor: lastDragX !== null ? 'grabbing' : 'grab',
     }"
-    ref="ref"
+    ref="elRef"
   >
     <slot />
   </div>
