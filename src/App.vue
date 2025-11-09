@@ -62,13 +62,17 @@ const visibleData = computed(() => {
 
 <style module>
 .event {
+  display: flex;
+  align-items: center;
   position: absolute;
-  height: 20px;
+  height: 32px;
   top: 50%;
   transform: translateY(-50%);
-  background: red;
+  background: rgb(86, 122, 250);
+  color: white;
   border-radius: 6px;
   will-change: transform;
+  overflow: hidden;
 }
 
 .eventTitle {
@@ -77,5 +81,6 @@ const visibleData = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   right: 0;
+  padding: 0 4px;
 }
 </style>
