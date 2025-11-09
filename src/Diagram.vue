@@ -6,12 +6,14 @@ type ReturnType<F> = F extends (...args: infer A) => infer R ? R : never
 
 // const props = defineProps<{ handler: ReturnType<typeof usePanZoom> }>()
 
+const width = defineModel<number>('width', { default: 0 })
+
 const lastDragX = ref<number | null>(null)
 
 const elRef = useTemplateRef<HTMLElement>('ref')
 
 const { showFrom, showTo, zoom, pan, panByStep, toScreen, fromScreen, applyInertia } =
-  usePanZoom(elRef)
+  usePanZoom(width)
 
 defineExpose({ toScreen })
 
@@ -19,6 +21,14 @@ const emit = defineEmits<{
   (e: 'isDragging', value: boolean): void
   (e: 'showBoundsChange', value: { showFrom: number; showTo: number }): void
 }>()
+
+watch(elRef, () => {
+  console.log('elRef', elRef.value)
+  if (!elRef.value) return
+  new ResizeObserver((entries) => (width.value = entries[0]?.contentRect.width ?? 0)).observe(
+    elRef.value,
+  )
+})
 
 watch(
   [showFrom, showTo],

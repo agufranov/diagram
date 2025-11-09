@@ -38,6 +38,8 @@ const visibleData = computed(() => {
   const lastIndex = findLast(data, showTo.value)
   return data.filter((_, i) => i >= firstIndex! && i <= lastIndex!)
 })
+
+const t = ref()
 </script>
 
 <template>
@@ -45,7 +47,9 @@ const visibleData = computed(() => {
     ref="diagram"
     @is-dragging="isDragging = $event"
     @show-bounds-change="((showFrom = $event.showFrom), (showTo = $event.showTo))"
+    v-model:width="t"
   >
+    {{ t }}
     <div
       v-for="[from, to] in visibleData"
       :key="from"
