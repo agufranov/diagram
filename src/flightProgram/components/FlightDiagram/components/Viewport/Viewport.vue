@@ -13,6 +13,7 @@ const { pan, panByStep, zoom, applyInertia } = props
 const width = defineModel<number>('width', { default: 0 })
 
 const lastDragX = ref<number | null>(null)
+const lastDragTime = ref<number | null>(null)
 
 const elRef = useTemplateRef<HTMLElement>('elRef')
 
@@ -21,41 +22,54 @@ const emit = defineEmits<{
 }>()
 
 watch(elRef, () => {
-  console.log('elRef', elRef.value)
   if (!elRef.value) return
-  new ResizeObserver((entries) => (width.value = entries[0]?.contentRect.width ?? 0)).observe(
-    elRef.value,
-  )
+  new ResizeObserver((entries) => (width.value = entries[0]?.contentRect.width ?? 0)).observe(elRef.value)
 })
 
 const handleWheel = (e: WheelEvent) => {
   const direction = Math.sign(e.deltaY)
 
   if (e.shiftKey) {
+    // emit('isDragging', true)
     panByStep(direction)
   } else {
-    zoom(direction, e.clientX)
+    const screenCenter = e.clientX - (e.currentTarget as HTMLElement).getBoundingClientRect().x
+    zoom(direction, screenCenter)
   }
 }
 
 const handlePointerDown = (e: PointerEvent) => {
+  e.preventDefault()
+  e.stopPropagation()
+
   lastDragX.value = e.clientX
+  lastDragTime.value = Date.now()
   elRef.value?.setPointerCapture(e.pointerId)
   emit('isDragging', true)
 }
 
 const handlePointerMove = (e: PointerEvent) => {
-  if (lastDragX.value === null) return
+  if (lastDragX.value === null || lastDragTime.value === null) return
 
   pan(e.clientX - lastDragX.value)
+
   lastDragX.value = e.clientX
+  lastDragTime.value = Date.now()
 }
 
 const handlePointerUp = (e: PointerEvent) => {
-  lastDragX.value = null
   elRef.value?.releasePointerCapture(e.pointerId)
-  applyInertia()
   emit('isDragging', false)
+  e.preventDefault()
+  e.stopPropagation()
+
+  if (lastDragX.value !== null && lastDragTime.value !== null) {
+    if (Date.now() !== lastDragTime.value) {
+      applyInertia()
+    }
+  }
+
+  lastDragX.value = null
 }
 </script>
 
@@ -77,9 +91,6 @@ const handlePointerUp = (e: PointerEvent) => {
 
 <style module>
 .container {
-  width: 100%;
-  height: 500px;
-  background: #eee;
   position: relative;
   overflow: hidden;
   user-select: none;

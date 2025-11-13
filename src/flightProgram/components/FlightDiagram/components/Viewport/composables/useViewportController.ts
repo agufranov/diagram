@@ -1,62 +1,74 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
-export const usePanZoom = () => {
+interface ViewportOptions {
+  start: number
+  end: number
+}
+
+export const useViewportController = (options: ViewportOptions) => {
   const maxZoom = 20
   const minZoom = -5
-  const baseWidth = 100
   const zoomFactor = 0.3
   const inertiaFactor = 1.6
-  const inertiaMax = 1000
+  const inertiaMax = 100
   const mousePanFactor = 0.1
-  const transformDuration = 300
+  const transformDuration = 500
 
   const zoomLevel = ref(10)
-  const zoomCoef = computed(() => Math.exp(zoomLevel.value * zoomFactor))
 
-  const start = ref(-50)
-  const end = ref(start.value + baseWidth * zoomCoef.value)
+  const start = ref(options.start)
+  const end = ref(options.end)
 
   const width = computed(() => end.value - start.value)
   const screenWidth = ref(0)
 
   const inertia = ref<number>(0)
   const inertiaDistance = computed(() => {
-    const inertiaValue =
+    const boundInertia =
       inertia.value > 0 ? Math.min(inertia.value, inertiaMax) : Math.max(inertia.value, -inertiaMax)
     // const inertiaValue = Math.sign(inertia.value) * inertiaMax
 
-    console.log('inertia distance is', inertiaValue * inertiaFactor * zoomCoef.value)
-    return inertiaValue * inertiaFactor
+    // console.log('inertia distance is', boundInertia * inertiaFactor * zoomCoef.value)
+    return boundInertia * inertiaFactor
   })
 
   const displayGap = computed(() =>
     Math.max((width.value * Math.exp(zoomFactor)) / 2, Math.abs(inertiaDistance.value)),
   )
 
-  const renderStart = computed(() => start.value - displayGap.value)
-  const renderEnd = computed(() => end.value + displayGap.value)
+  const renderStart = ref(start.value - displayGap.value)
+  const renderEnd = ref(end.value + displayGap.value)
 
-  // const renderStart = ref(0)
-  // const renderEnd = ref(0)
-  // watch(
-  //   [from, to, displayGap],
-  //   debounce(() => {
-  //     console.log('watcher')
-  //     renderStart.value = from.value - displayGap.value
-  //     renderEnd.value = to.value + displayGap.value
-  //   }, 5),
-  // )
+  watch([start, end, displayGap], () => {
+    if (
+      start.value - renderStart.value < displayGap.value / 2 ||
+      start.value - renderStart.value > (displayGap.value * 3) / 2
+    ) {
+      renderStart.value = start.value - displayGap.value
+    }
+
+    if (
+      renderEnd.value - end.value < displayGap.value / 2 ||
+      renderEnd.value - end.value > (displayGap.value * 3) / 2
+    ) {
+      renderEnd.value = end.value + displayGap.value
+    }
+  })
 
   const toScreen = (x: number) => {
     return (screenWidth.value * (x - start.value)) / width.value
   }
 
   const fromScreen = (x: number) => {
-    return start.value + ((end.value - start.value) * x) / screenWidth.value
+    return start.value + (width.value * x) / screenWidth.value
   }
 
   const intervalFromScreen = (d: number) => {
-    return ((end.value - start.value) * d) / screenWidth.value
+    return (width.value * d) / screenWidth.value
+  }
+
+  const intervalToScreen = (d: number) => {
+    return (d * screenWidth.value) / width.value
   }
 
   const zoom = (by: number, screenCenter: number) => {
@@ -74,31 +86,36 @@ export const usePanZoom = () => {
 
   const pan = (screenDelta: number) => {
     inertia.value = screenDelta
+    const w = width.value
     start.value -= intervalFromScreen(screenDelta)
-    end.value = start.value + baseWidth * zoomCoef.value
-    setTimeout(() => (inertia.value = 0), transformDuration)
+    end.value = start.value + w
   }
 
   const panByStep = (by: number) => {
-    pan(-mousePanFactor * screenWidth.value * by)
+    const w = width.value
+    start.value -= intervalFromScreen(-mousePanFactor * screenWidth.value * by)
+    end.value = start.value + w
   }
 
   const applyInertia = () => {
+    setTimeout(() => (inertia.value = 0), transformDuration)
     pan(inertiaDistance.value)
   }
-
-  const isEventVisible = (eventFrom: number, eventTo: number) =>
-    eventTo >= renderStart.value && eventFrom <= renderEnd.value
 
   return {
     renderStart,
     renderEnd,
+    start,
+    end,
     pan,
     panByStep,
     zoom,
     toScreen,
+    intervalToScreen,
     applyInertia,
     screenWidth,
     transformDuration,
+    zoomLevel,
+    zoomFactor,
   }
 }
